@@ -19,7 +19,7 @@
         app:layout_constraintTop_toTopOf="parent"
         />
 
-    <tech.bitmin.customviewdemo.OpenButton
+    <tech.bitmin.view.OpenButton
         android:id="@+id/open_button"
         android:layout_width="0dp"
         android:layout_height="40dp"

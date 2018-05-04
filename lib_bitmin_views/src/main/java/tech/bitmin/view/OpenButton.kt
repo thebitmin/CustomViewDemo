@@ -1,4 +1,4 @@
-package tech.bitmin.customviewdemo
+package tech.bitmin.view
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
@@ -10,7 +10,6 @@ import android.graphics.*
 import android.text.Layout
 import android.text.TextPaint
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 
