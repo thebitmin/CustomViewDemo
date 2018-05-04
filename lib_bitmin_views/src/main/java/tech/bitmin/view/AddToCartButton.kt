@@ -12,36 +12,47 @@ import android.text.TextPaint
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import java.util.concurrent.RecursiveTask
 
 /**
- * Created by Bitmin on 2018/5/3.
+ * Created by Bitmin on 2018/5/4.
  * Email: thebititmin@outlook.com
  * Blog: Bitmin.tech
  */
-@Suppress("unused", "PrivatePropertyName")
-open class OpenButton : View {
+//@Suppress("unused", "PrivatePropertyName")
+class AddToCartButton : View {
 
     private val paint = Paint()
-    private var textPaint: TextPaint? = null
+    private var numPaint: TextPaint? = null
+    private var promptPaint = TextPaint()
+    private var prompt: String = "加入购物车"
+    private var promptStringWidth = 0f //提示文字显示宽度
+    private var promptStringHeight = 0f //提示文字显示高度
+    private var promptBgPaint = Paint()
     private var addImageRes: Int? = null //加号图标
     private var subImageRes: Int? = null //减号图标
     private var addBitmap: Bitmap? = null
     private var subBitmap: Bitmap? = null
+    private val promptBgLeftRectF = RectF()
+    private val promptBgCenterRect = Rect()
     private val addSrc = Rect() //默认加号减号图片大小相同
     private val addDst = Rect() //默认加号减号图片大小相同
-    private var num: Int = 1 //显示数字
-    private var numStringWidth: Float = 0f //文字显示宽度
-    private var numStringHeight: Float = 0f //文字显示高度
-    private var rotate = 0f  //旋转角度
+    private var num: Int = 0 //显示数字
+    private var numStringWidth: Float = 0f //数字显示宽度
+    private var numStringHeight: Float = 0f //数字显示高度
     private var translate = 0f //移动距离
     private var openAnimatorSet: AnimatorSet? = null
     private var closeAnimatorSet: AnimatorSet? = null
     private var addOrSubRunnable: KeepAddOrSubRunnable? = null
     private var translateX = 0f //加号展开后偏移的距离，会在 onSizeChanged() 中赋值为布局高度
 
+    @Suppress("PrivatePropertyName")
     private val CLOSE = 0  //关闭状态
+    @Suppress("PrivatePropertyName")
     private val OPENING = 1 //打开中
+    @Suppress("PrivatePropertyName")
     private val OPEN = 2 //打开状态
+    @Suppress("PrivatePropertyName")
     private val CLOSING = 3 //关闭中
     private var openStatus = CLOSE  //默认为关闭状态
 
@@ -55,6 +66,13 @@ open class OpenButton : View {
     init {
         paint.flags = Paint.ANTI_ALIAS_FLAG
         paint.style = Paint.Style.FILL
+
+        promptBgPaint.flags = Paint.ANTI_ALIAS_FLAG
+        promptBgPaint.style = Paint.Style.FILL
+
+        initPromptPaint()
+        measurePromptStringHeight()
+        measureNumStringWidth()
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -63,20 +81,79 @@ open class OpenButton : View {
     }
 
     /**
+     * 设置提示背景颜色
+     */
+    @Suppress("unused")
+    fun setPromptBgColor(color: Int): AddToCartButton {
+        promptBgPaint.color = color
+        return this
+    }
+
+    /**
+     * 设置提示
+     * 例如加入购物车
+     */
+    @Suppress("unused")
+    fun setPrompt(prompt: String): AddToCartButton {
+        this.prompt = prompt
+        measurePromptStringHeight()
+        measurePromptStringWidth()
+        return this
+    }
+
+    /**
+     * 计算提示文字高度
+     */
+    private fun measurePromptStringHeight() {
+        if (promptStringHeight.toInt() != 0) {
+            return
+        }
+        val metrics = promptPaint.fontMetrics
+        promptStringHeight = metrics.descent - metrics.ascent
+    }
+
+    /**
+     * 计算提示文字宽度
+     */
+    private fun measurePromptStringWidth() {
+        promptStringWidth = Layout.getDesiredWidth(prompt, promptPaint)
+    }
+
+    /**
      * 获取数量
      */
+    @Suppress("unused")
     fun getNum(): Int {
         return num
     }
 
     /**
-     * 设置字体大小
+     * 设置提示字体大小
      */
-    fun setTextSizeDp(dp: Float): OpenButton {
-        if (textPaint == null) {
-            initTextPaint()
+    @Suppress("unused")
+    fun setPromptTextSizeDp(dp: Float): AddToCartButton {
+        promptPaint.textSize = dp2px(dp)
+        return this
+    }
+
+    /**
+     * 设置提示字体颜色
+     */
+    @Suppress("unused")
+    fun setPromptTextColor(color: Int): AddToCartButton {
+        promptPaint.color = color
+        return this
+    }
+
+    /**
+     * 设置数字字体大小
+     */
+    @Suppress("unused")
+    fun setNumTextSizeDp(dp: Float): AddToCartButton {
+        if (numPaint == null) {
+            initNumPaint()
         }
-        textPaint!!.textSize = dp2px(dp)
+        numPaint!!.textSize = dp2px(dp)
         //计算数字显示宽度
         measureNumStringWidth()
         //计算数字显示高度
@@ -88,7 +165,8 @@ open class OpenButton : View {
      * 设置显示的数字
      * 如果控件已经展开计算数字显示长用的宽度
      */
-    fun setNum(num: Int): OpenButton {
+    @Suppress("MemberVisibilityCanBePrivate")
+    fun setNum(num: Int): AddToCartButton {
         this.num = num
         if (openStatus == CLOSE) {
             return this
@@ -103,11 +181,23 @@ open class OpenButton : View {
     }
 
     /**
-     * 初始化文字笔
+     * 初始化提示文字笔
      */
-    private fun initTextPaint() {
-        textPaint = TextPaint()
-        val paint = textPaint!!
+    private fun initPromptPaint() {
+        promptPaint = TextPaint()
+        val paint = promptPaint
+        paint.textSize = dp2px(17f)
+        paint.textAlign = Paint.Align.CENTER
+        paint.flags = Paint.ANTI_ALIAS_FLAG
+        paint.color = Color.WHITE
+    }
+
+    /**
+     * 初始化数字笔
+     */
+    private fun initNumPaint() {
+        numPaint = TextPaint()
+        val paint = numPaint!!
         paint.textSize = dp2px(17f)
         paint.textAlign = Paint.Align.CENTER
         paint.flags = Paint.ANTI_ALIAS_FLAG
@@ -117,23 +207,23 @@ open class OpenButton : View {
      * 计算数字显示长度
      */
     private fun measureNumStringWidth() {
-        if (textPaint == null) {
-            initTextPaint()
+        if (numPaint == null) {
+            initNumPaint()
         }
-        numStringWidth = Layout.getDesiredWidth(num.toString(), textPaint!!)
+        numStringWidth = Layout.getDesiredWidth(num.toString(), numPaint!!)
     }
 
     /**
      * 计算字体高度
      */
     private fun measureNumStringHeight() {
-        if (textPaint == null) {
-            initTextPaint()
+        if (numPaint == null) {
+            initNumPaint()
         }
         if (numStringHeight.toInt() != 0) {
             return
         }
-        val metrics = textPaint!!.fontMetrics
+        val metrics = numPaint!!.fontMetrics
         numStringHeight = metrics.descent - metrics.ascent
     }
 
@@ -141,10 +231,9 @@ open class OpenButton : View {
      * 设置加号图标
      * 顺便更新加号 Bitmap 和 src
      */
-    fun setAddImageRes(res: Int): OpenButton {
+    @Suppress("MemberVisibilityCanBePrivate", "unused")
+    fun setAddImageRes(res: Int): AddToCartButton {
         addImageRes = res
-        addBitmap = BitmapFactory.decodeResource(resources, addImageRes!!)
-        addSrc.set(0, 0, addBitmap!!.width, addBitmap!!.height)
         return this
     }
 
@@ -152,21 +241,105 @@ open class OpenButton : View {
      * 设置减号图标
      * 但是不获取 bitmap，bitmap 到展开动画前获取，节省开支
      */
-    fun setSubImageRes(res: Int): OpenButton {
+    @Suppress("MemberVisibilityCanBePrivate", "unused")
+    fun setSubImageRes(res: Int): AddToCartButton {
         subImageRes = res
         return this
     }
 
     /**
-     * onDraw() 中画出所有图形
-     * 默认状态只画加号
-     * 调用顺序就图案叠加顺序
+     * 需要画
+     * 1. 最上层加入购物车提示
+     * 2. 下层加减按钮和数字
      */
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        drawText(canvas)
+        drawNumText(canvas)
         drawSub(canvas)
         drawAdd(canvas)
+        drawPrompt(canvas)
+    }
+
+    private fun drawPrompt(canvas: Canvas) {
+        //画左边半圆
+        drawPromptBgLeft(canvas)
+        //画中间矩形
+        drawPromptBgCenter(canvas)
+        //画右边半圆
+        drawPromptBgRight(canvas)
+        //画文字咯，码农太寂寞，注释上和自己聊起天
+        if (openStatus != CLOSE) {
+            return
+        }
+        canvas.drawText(prompt, width / 2f, height / 2f + promptStringHeight / 3f, promptPaint)
+    }
+
+    /**
+     * 画提示文字左边半圆，自己测试的时候和矩形连接处有缝隙所以角度大了一些
+     */
+    private fun drawPromptBgLeft(canvas: Canvas) {
+        if (openStatus == OPEN) {
+            return
+        }
+        canvas.save()
+        canvas.translate(-numStringWidth / 2 - translateX + translate, 0f)
+        if (promptBgLeftRectF.bottom.toInt() == 0) {
+            initPromptLeftRectF()
+        }
+        canvas.drawArc(promptBgLeftRectF, 80f, 200f, true, promptBgPaint)
+        canvas.restore()
+    }
+
+    /**
+     * 画提示文字中间矩形
+     */
+    private fun drawPromptBgCenter(canvas: Canvas) {
+        if (openStatus == OPEN) {
+            return
+        }
+        setPromptCenterRect() //每次绘画重新计算位置
+        canvas.drawRect(promptBgCenterRect, promptBgPaint)
+    }
+
+    /**
+     * 画提示文字右边半圆，自己测试的时候和矩形连接处有缝隙所以角度大了一些
+     */
+    private fun drawPromptBgRight(canvas: Canvas) {
+        if (openStatus == OPEN) {
+            return
+        }
+        canvas.save()
+        canvas.translate(numStringWidth / 2 + translateX, 0f)
+        if (promptBgLeftRectF.bottom.toInt() == 0) {
+            initPromptLeftRectF()
+        }
+        canvas.drawArc(promptBgLeftRectF, -100f, 200f, true, promptBgPaint)
+        canvas.restore()
+    }
+
+    /**
+     * 左半圆在画布中的位置
+     * 右边半圆也是这个位置了
+     * 加号减号也是这个位置了
+     */
+    private fun initPromptLeftRectF() {
+        val radio = height / 2f
+        val left = width / 2f - radio
+        val top = 0f
+        val right = width / 2f + radio
+        val bottom = height.toFloat()
+        promptBgLeftRectF.set(left, top, right, bottom)
+    }
+
+    /**
+     * 中间矩形在画布中的位置
+     */
+    private fun setPromptCenterRect() {
+        val left = width / 2f - numStringWidth / 2 - translateX + translate
+        val top = 0
+        val right = width / 2f + numStringWidth / 2 + translateX
+        val bottom = height
+        promptBgCenterRect.set(left.toInt(), top, right.toInt(), bottom)
     }
 
     /**
@@ -176,22 +349,22 @@ open class OpenButton : View {
         if (openStatus == CLOSE) {
             return
         }
+        if (addDst.right == 0) {
+            initAddDst()
+        }
         if (subImageRes == null) {
             return
         }
         if (subBitmap == null) {
             subBitmap = BitmapFactory.decodeResource(resources, subImageRes!!)
         }
+        if (addSrc.right == 0) {
+            addSrc.set(0, 0, subBitmap!!.width, subBitmap!!.height)
+        }
         canvas.save()
-        //移动画布，画布移动的距离与动画属性、文字宽度有关
-        canvas.translate(-translate, 0f)
-        //旋转画布
-        canvas.rotate(-rotate, width / 2f, height / 2f)
         //在展开状态时移动距离加上文字宽度
         //todo 这样并不优雅，最好能够通过动画展开，暂时有个思路，判断 numStringWidth 改变时开始动画。
-        if (openStatus == OPEN) {
-            canvas.translate(-numStringWidth / 2, 0f)
-        }
+        canvas.translate(-numStringWidth / 2 - translateX, 0f)
         canvas.drawBitmap(subBitmap, addSrc, addDst, paint)
         canvas.restore()
     }
@@ -201,22 +374,25 @@ open class OpenButton : View {
      * bitmap高度使用布局高度
      */
     private fun drawAdd(canvas: Canvas) {
+        if (openStatus != OPEN) {
+            return
+        }
         if (null == addImageRes) {
             return
         }
         if (addDst.right == 0) {
             initAddDst()
         }
+        if (addBitmap == null) {
+            addBitmap = BitmapFactory.decodeResource(resources, addImageRes!!)
+        }
+        if (addSrc.right == 0) {
+            addSrc.set(0, 0, addBitmap!!.width, addBitmap!!.height)
+        }
         canvas.save()
-        //移动画布，画布移动的距离与动画属性、文字宽度有关
-        canvas.translate(translate, 0f)
-        //旋转画布
-        canvas.rotate(rotate, width / 2f, height / 2f)
         //在展开状态时移动距离加上文字宽度
         //todo 这样并不优雅，最好能够通过动画展开，暂时有个思路，判断 numStringWidth 改变时开始动画。
-        if (openStatus == OPEN) {
-            canvas.translate(numStringWidth / 2, 0f)
-        }
+        canvas.translate(numStringWidth / 2 + translateX, 0f)
         canvas.drawBitmap(addBitmap, addSrc, addDst, paint)
         canvas.restore()
     }
@@ -235,12 +411,12 @@ open class OpenButton : View {
     /**
      * 画文字
      */
-    private fun drawText(canvas: Canvas) {
-        if (openStatus != OPEN) {
+    private fun drawNumText(canvas: Canvas) {
+        if (openStatus == CLOSE) {
             return
         }
         canvas.drawText(num.toString(), width / 2f,
-                height / 2f + numStringHeight / 3f, textPaint)
+                height / 2f + numStringHeight / 3f, numPaint)
     }
 
     /**
@@ -406,26 +582,6 @@ open class OpenButton : View {
     }
 
     /**
-     * 初始化收回动画
-     */
-    private fun initCloseAnimatorSet() {
-        val rotateAnimator = ObjectAnimator.ofFloat(this, "rotate", 360f, 0f)
-        val translateAnimator = ObjectAnimator.ofFloat(this, "translate", translateX, 0f)
-        closeAnimatorSet = AnimatorSet()
-        closeAnimatorSet!!.duration = 300
-        closeAnimatorSet!!.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: Animator?) {
-                openStatus = CLOSE
-            }
-
-            override fun onAnimationStart(animation: Animator?) {
-                openStatus = CLOSING
-            }
-        })
-        closeAnimatorSet!!.playTogether(rotateAnimator, translateAnimator)
-    }
-
-    /**
      * 执行展开动画
      */
     private fun open(event: MotionEvent) {
@@ -447,15 +603,22 @@ open class OpenButton : View {
     }
 
     /**
+     * 判断点击位置是否在图标之外
+     */
+    private fun isCloseOutside(event: MotionEvent): Boolean {
+        val radio = numStringWidth / 2 + translateX + height / 2f
+        return event.x < (width / 2f - radio) || event.x > (width / 2f + radio)
+    }
+
+    /**
      * 初始化展开动画
      */
     private fun initOpenAnimatorSet() {
-        if (textPaint == null) {
-            initTextPaint()
+        if (numPaint == null) {
+            initNumPaint()
             measureNumStringWidth()
         }
-        val rotateAnimator = ObjectAnimator.ofFloat(this, "rotate", 0f, 360f)
-        val translateAnimator = ObjectAnimator.ofFloat(this, "translate", 0f, translateX)
+        val translateAnimator = ObjectAnimator.ofFloat(this, "translate", 0f, numStringWidth + translateX * 2)
         openAnimatorSet = AnimatorSet()
         openAnimatorSet!!.duration = 300
         openAnimatorSet!!.addListener(object : AnimatorListenerAdapter() {
@@ -467,31 +630,32 @@ open class OpenButton : View {
                 openStatus = OPENING
             }
         })
-        openAnimatorSet!!.playTogether(rotateAnimator, translateAnimator)
+        openAnimatorSet!!.playTogether(translateAnimator)
     }
 
     /**
-     * 判断点击位置是否在图标之外
+     * 初始化收回动画
      */
-    private fun isCloseOutside(event: MotionEvent): Boolean {
-        val x = width / 2.toDouble() - event.x
-        val y = height / 2.toDouble() - event.y
-        val distance = Math.sqrt(x * x + y * y)
-        return distance > height / 2f
+    private fun initCloseAnimatorSet() {
+        val translateAnimator = ObjectAnimator.ofFloat(this, "translate", numStringWidth + translateX * 2, 0f)
+        closeAnimatorSet = AnimatorSet()
+        closeAnimatorSet!!.duration = 300
+        closeAnimatorSet!!.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator?) {
+                openStatus = CLOSE
+            }
+
+            override fun onAnimationStart(animation: Animator?) {
+                openStatus = CLOSING
+            }
+        })
+        closeAnimatorSet!!.playTogether(translateAnimator)
     }
 
     /**
      * 用于属性动画
-     * 不执行 invalidate()
-     * 因为和 setTranslate() 同时执行，只需要执行一次 invalidate()
      */
-    fun setRotate(rotate: Float) {
-        this.rotate = rotate
-    }
-
-    /**
-     * 用于属性动画
-     */
+    @Suppress("unused")
     fun setTranslate(translate: Float) {
         this.translate = translate
         invalidate()
@@ -502,7 +666,7 @@ open class OpenButton : View {
         return (resources.displayMetrics.density * dp)
     }
 
-    private inner class KeepAddOrSubRunnable(private var delayed: Long): Runnable {
+    private inner class KeepAddOrSubRunnable(private var delayed: Long) : Runnable {
 
         private var isAdd = true
 
@@ -523,7 +687,7 @@ open class OpenButton : View {
                     return
                 }
             }
-            this@OpenButton.postDelayed(this, delayed)
+            this@AddToCartButton.postDelayed(this, delayed)
         }
     }
 }
