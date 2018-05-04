@@ -63,6 +63,16 @@ open class OpenButton : View {
         translateX = h.toFloat()
     }
 
+    /**
+     * 获取数量
+     */
+    fun getNum(): Int {
+        return num
+    }
+
+    /**
+     * 设置字体大小
+     */
     fun setTextSizeDp(dp: Float): OpenButton {
         if (textPaint == null) {
             initTextPaint()
