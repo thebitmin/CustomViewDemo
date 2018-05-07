@@ -12,7 +12,6 @@ import android.text.TextPaint
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import java.util.concurrent.RecursiveTask
 
 /**
  * Created by Bitmin on 2018/5/4.
@@ -374,9 +373,6 @@ class AddToCartButton : View {
      * bitmap高度使用布局高度
      */
     private fun drawAdd(canvas: Canvas) {
-        if (openStatus != OPEN) {
-            return
-        }
         if (null == addImageRes) {
             return
         }

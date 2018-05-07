@@ -22,5 +22,10 @@ class MainActivity : AppCompatActivity() {
                 .setPromptTextColor(Color.WHITE) //设置提示文字颜色
                 .setAddImageRes(R.drawable.cart_add) //设置加号图标
                 .setSubImageRes(R.drawable.cart_sub) //设置减号图标
+
+        right_open_button.setNum(0) //设置默认数字
+                .setTextSizeDp(30f) //设置字体大小
+                .setAddImageRes(R.drawable.cart_add) //设置加号图标
+                .setSubImageRes(R.drawable.cart_sub) //设置减号图标
     }
 }
