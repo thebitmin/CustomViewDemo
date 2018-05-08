@@ -36,7 +36,7 @@ class AddToCartButton : View {
     private val promptBgCenterRect = Rect()
     private val addSrc = Rect() //默认加号减号图片大小相同
     private val addDst = Rect() //默认加号减号图片大小相同
-    private var num: Int = 0 //显示数字
+    private var num: Long = 0 //显示数字
     private var numStringWidth: Float = 0f //数字显示宽度
     private var numStringHeight: Float = 0f //数字显示高度
     private var translate = 0f //移动距离
@@ -44,6 +44,7 @@ class AddToCartButton : View {
     private var closeAnimatorSet: AnimatorSet? = null
     private var addOrSubRunnable: KeepAddOrSubRunnable? = null
     private var translateX = 0f //加号展开后偏移的距离，会在 onSizeChanged() 中赋值为布局高度
+    private var numChangeListenerList: ArrayList<(num: Long, isAdd: Boolean) -> Unit>? = null
 
     @Suppress("PrivatePropertyName")
     private val CLOSE = 0  //关闭状态
@@ -77,6 +78,27 @@ class AddToCartButton : View {
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         translateX = h.toFloat()
+    }
+
+    /**
+     * 添加数字改变监听
+     */
+    @Suppress("unused")
+    fun addNumChangeListener(listener: (num: Long, isAdd: Boolean) -> Unit): AddToCartButton {
+        if (numChangeListenerList == null) {
+            numChangeListenerList = ArrayList()
+        }
+        numChangeListenerList!!.add(listener)
+        return this
+    }
+
+    /**
+     * 删除所有监听
+     */
+    @Suppress("unused")
+    fun removeAllListener(): AddToCartButton {
+        numChangeListenerList?.clear()
+        return this
     }
 
     /**
@@ -122,7 +144,7 @@ class AddToCartButton : View {
      * 获取数量
      */
     @Suppress("unused")
-    fun getNum(): Int {
+    fun getNum(): Long {
         return num
     }
 
@@ -165,8 +187,17 @@ class AddToCartButton : View {
      * 如果控件已经展开计算数字显示长用的宽度
      */
     @Suppress("MemberVisibilityCanBePrivate")
-    fun setNum(num: Int): AddToCartButton {
+    fun setNum(num: Long): AddToCartButton {
+        if (num < 0) {
+            return this
+        }
         this.num = num
+        if (num == 0L) {
+            startCloseAnimator()
+        }
+        if (num > 0) {
+            startOpenAnimator()
+        }
         if (openStatus == CLOSE) {
             return this
         }
@@ -424,10 +455,8 @@ class AddToCartButton : View {
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                open(event)
                 add(event)
                 sub(event)
-                close(event)
                 keepAdd(event)
                 keepSub(event)
             }
@@ -493,15 +522,30 @@ class AddToCartButton : View {
      * 增加数字
      */
     private fun add(event: MotionEvent) {
-        //不在展开状态不执行
-        if (openStatus != OPEN) {
-            return
-        }
-        //点击在图标之外不执行
-        if (isOpenAddOutside(event)) {
-            return
+        when(openStatus) {
+            OPEN -> {
+                if (isOpenAddOutside(event)) {
+                    return
+                }
+            }
+            CLOSE -> {
+                if (isCloseOutside(event)) {
+                    return
+                }
+            }
+            else -> {
+                return
+            }
         }
         addOne()
+    }
+
+    /**
+     * 判断点击位置是否在图标之外
+     */
+    private fun isCloseOutside(event: MotionEvent): Boolean {
+        val radio = numStringWidth / 2 + translateX + height / 2f
+        return event.x < (width / 2f - radio) || event.x > (width / 2f + radio)
     }
 
     /**
@@ -509,6 +553,9 @@ class AddToCartButton : View {
      */
     private fun addOne() {
         setNum(++num)
+        numChangeListenerList?.forEach {
+            it(num, true)
+        }
     }
 
     /**
@@ -539,10 +586,13 @@ class AddToCartButton : View {
      * 数字减1
      */
     private fun subOne(): Boolean {
-        if (num == 0) {
+        if (num == 0L) {
             return false
         }
         setNum(--num)
+        numChangeListenerList?.forEach {
+            it(num, false)
+        }
         return true
     }
 
@@ -557,17 +607,13 @@ class AddToCartButton : View {
     /**
      * 执行按钮收回动画
      */
-    private fun close(event: MotionEvent) {
+    private fun startCloseAnimator() {
         //数字不为 0 不执行
-        if (num != 0) {
+        if (num != 0L) {
             return
         }
         //已经收回不再执行
         if (openStatus == CLOSE) {
-            return
-        }
-        //点击在图标之外不执行
-        if (isOpenSubOutside(event)) {
             return
         }
         //开启属性动画，改变属性
@@ -580,13 +626,9 @@ class AddToCartButton : View {
     /**
      * 执行展开动画
      */
-    private fun open(event: MotionEvent) {
+    private fun startOpenAnimator() {
         //已经展开不再执行
         if (openStatus != CLOSE) {
-            return
-        }
-        //点击在图标之外，不执行
-        if (isCloseOutside(event)) {
             return
         }
         //开启属性动画，改变属性
@@ -594,16 +636,6 @@ class AddToCartButton : View {
             initOpenAnimatorSet()
         }
         openAnimatorSet!!.start()
-        //数字加1
-        addOne()
-    }
-
-    /**
-     * 判断点击位置是否在图标之外
-     */
-    private fun isCloseOutside(event: MotionEvent): Boolean {
-        val radio = numStringWidth / 2 + translateX + height / 2f
-        return event.x < (width / 2f - radio) || event.x > (width / 2f + radio)
     }
 
     /**

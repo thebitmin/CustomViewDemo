@@ -17,7 +17,6 @@ import android.view.View
  * Created by Bitmin on 2018/5/4.
  * Email: thebititmin@outlook.com
  * Blog: Bitmin.tech
- * todo 未完成
  */
 class RightOpenButton : View {
 
@@ -29,7 +28,7 @@ class RightOpenButton : View {
     private var subBitmap: Bitmap? = null
     private val addSrc = Rect() //默认加号减号图片大小相同
     private val addDst = Rect() //加号图片位置
-    private var num: Int = 1 //显示数字
+    private var num: Long = 1 //显示数字
     private var numStringWidth: Float = 0f //文字显示宽度
     private var numStringHeight: Float = 0f //文字显示高度
     private var rotate = 0f  //旋转角度，动画改变的角度
@@ -39,6 +38,7 @@ class RightOpenButton : View {
     private var closeAnimatorSet: AnimatorSet? = null
     private var addOrSubRunnable: KeepAddOrSubRunnable? = null //自动加减的 Runnable
     private var point = Point()
+    private var numChangeListenerList: ArrayList<(num: Long, isAdd: Boolean) -> Unit>? = null
 
     @Suppress("PrivatePropertyName")
     private val CLOSE = 0  //关闭状态
@@ -64,6 +64,27 @@ class RightOpenButton : View {
     }
 
     /**
+     * 添加数字改变监听
+     */
+    @Suppress("unused")
+    fun addNumChangeListener(listener: (num: Long, isAdd: Boolean) -> Unit): RightOpenButton {
+        if (numChangeListenerList == null) {
+            numChangeListenerList = ArrayList()
+        }
+        numChangeListenerList!!.add(listener)
+        return this
+    }
+
+    /**
+     * 删除所有监听
+     */
+    @Suppress("unused")
+    fun removeAllListener(): RightOpenButton {
+        numChangeListenerList?.clear()
+        return this
+    }
+
+    /**
      * 获取布局高度
      */
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -75,13 +96,14 @@ class RightOpenButton : View {
      * 获取数量
      */
     @Suppress("unused")
-    fun getNum(): Int {
+    fun getNum(): Long {
         return num
     }
 
     /**
      * 设置字体大小
      */
+    @Suppress("unused")
     fun setTextSizeDp(dp: Float): RightOpenButton {
         if (textPaint == null) {
             initTextPaint()
@@ -99,13 +121,12 @@ class RightOpenButton : View {
      * 设置显示的数字
      * 如果控件已经展开计算数字显示长用的宽度
      */
-    @Suppress("MemberVisibilityCanBePrivate")
-    fun setNum(num: Int): RightOpenButton {
+    fun setNum(num: Long): RightOpenButton {
         if (num < 0) {
             return this
         }
         this.num = num
-        if (num == 0) {
+        if (num == 0L) {
             startCloseAnimator()
         }
         if (num > 0) {
@@ -162,6 +183,7 @@ class RightOpenButton : View {
      * 设置加号图标
      * 顺便更新加号 Bitmap 和 src
      */
+    @Suppress("unused")
     fun setAddImageRes(res: Int): RightOpenButton {
         addImageRes = res
         addBitmap = BitmapFactory.decodeResource(resources, addImageRes!!)
@@ -169,10 +191,12 @@ class RightOpenButton : View {
         return this
     }
 
+
     /**
      * 设置减号图标
      * 但是不获取 bitmap，bitmap 到展开动画前获取，节省开支
      */
+    @Suppress("unused")
     fun setSubImageRes(res: Int): RightOpenButton {
         subImageRes = res
         return this
@@ -344,6 +368,9 @@ class RightOpenButton : View {
      */
     private fun addOne() {
         setNum(++num)
+        numChangeListenerList?.forEach {
+            it(num, true)
+        }
     }
 
     /**
@@ -363,10 +390,13 @@ class RightOpenButton : View {
      * 数字减1
      */
     private fun subOne(): Boolean {
-        if (num == 0) {
+        if (num == 0L) {
             return false
         }
         setNum(--num)
+        numChangeListenerList?.forEach {
+            it(num, false)
+        }
         return true
     }
 
@@ -421,7 +451,7 @@ class RightOpenButton : View {
      */
     private fun startCloseAnimator() {
         //数字不为 0 不执行
-        if (num != 0) {
+        if (num != 0L) {
             return
         }
         //已经收回不再执行

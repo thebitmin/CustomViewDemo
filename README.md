@@ -11,6 +11,9 @@ fun demo() {
                 .setTextSizeDp(30f) //设置字体大小
                 .setAddImageRes(R.drawable.cart_add) //设置加号图标
                 .setSubImageRes(R.drawable.cart_sub) //设置减号图标
+                .addNumChangeListener { num, isAdd -> //添加数字改变监听
+                    Toast.makeText(this, "num: $num, isAdd: $isAdd", Toast.LENGTH_SHORT).show()
+                }
                 
     open_button.getNum() //获取数量
 }
@@ -29,16 +32,15 @@ fun demo() {
                     .setPromptTextColor(Color.WHITE) //设置提示文字颜色
                     .setAddImageRes(R.drawable.cart_add) //设置加号图标
                     .setSubImageRes(R.drawable.cart_sub) //设置减号图标
+                    .addNumChangeListener { num, isAdd -> //添加数字改变监听
+                        Toast.makeText(this, "num: $num, isAdd: $isAdd", Toast.LENGTH_SHORT).show()
+                    }
                     
     add_to_cart_button.getNum() //获取数量
 }
 ```
 
 3. 靠右侧的展开折叠加减按钮
-
-前两个展开折叠动画再 onTouchEvent() 中判断，这个开始改为 setNum() 中判断
-同时开始展开折叠动画取消判断是否点击再按钮上
-我感觉这样改比原来的好
 
 ![样式](RightOpenButton.gif) 
 
@@ -48,5 +50,10 @@ fun demo() {
                     .setTextSizeDp(30f) //设置字体大小
                     .setAddImageRes(R.drawable.cart_add) //设置加号图标
                     .setSubImageRes(R.drawable.cart_sub) //设置减号图标
+                    .addNumChangeListener { num, isAdd -> //添加数字改变监听
+                        Toast.makeText(this, "num: $num, isAdd: $isAdd", Toast.LENGTH_SHORT).show()
+                    }
+                    
+    right_open_button.getNum() //获取数量
 }
 ```
