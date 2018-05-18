@@ -29,6 +29,7 @@ class RightOpenButton : View {
     private val addSrc = Rect() //默认加号减号图片大小相同
     private val addDst = Rect() //加号图片位置
     private var num: Long = 1 //显示数字
+    private var maxNum = Long.MAX_VALUE //限制最大数量
     private var numStringWidth: Float = 0f //文字显示宽度
     private var numStringHeight: Float = 0f //文字显示高度
     private var rotate = 0f  //旋转角度，动画改变的角度
@@ -61,6 +62,24 @@ class RightOpenButton : View {
         paint.flags = Paint.ANTI_ALIAS_FLAG
         paint.style = Paint.Style.FILL
 
+    }
+
+    /**
+     * 设置最大数量
+     */
+    @Suppress("unused")
+    fun setMaxNum(maxNum: Long): RightOpenButton {
+        if (maxNum < 1) {
+            throw IllegalArgumentException("maxNum Can not less than 1")
+        }
+        this.maxNum = maxNum
+        if (num > maxNum) {
+            setNum(maxNum)
+            numChangeListenerList?.forEach {
+                it(num, true)
+            }
+        }
+        return this
     }
 
     /**
@@ -123,6 +142,9 @@ class RightOpenButton : View {
      */
     fun setNum(num: Long): RightOpenButton {
         if (num < 0) {
+            return this
+        }
+        if (num > maxNum) {
             return this
         }
         this.num = num
@@ -367,6 +389,9 @@ class RightOpenButton : View {
      * 数字加1
      */
     private fun addOne() {
+        if (num == maxNum) {
+            return
+        }
         setNum(++num)
         numChangeListenerList?.forEach {
             it(num, true)

@@ -46,13 +46,18 @@ fun demo() {
 
 ```kotlin
 fun demo() {
-    right_open_button.setNum(0) //设置默认数字
-                    .setTextSizeDp(30f) //设置字体大小
-                    .setAddImageRes(R.drawable.cart_add) //设置加号图标
-                    .setSubImageRes(R.drawable.cart_sub) //设置减号图标
-                    .addNumChangeListener { num, isAdd -> //添加数字改变监听
-                        Toast.makeText(this, "num: $num, isAdd: $isAdd", Toast.LENGTH_SHORT).show()
-                    }
+    // 发现 Kotlin 正确的使用方式
+    right_open_button.apply {
+                setNum(0) //设置默认数量
+                setMaxNum(100) //设置最大数量
+                setTextSizeDp(30f) //设置字体大小
+                setAddImageRes(R.drawable.cart_add) //设置加号图标
+                setSubImageRes(R.drawable.cart_sub) //设置减号图标
+                removeAllListener() //删除所有监听
+                addNumChangeListener { num, isAdd -> //添加数字改变监听
+                    Snackbar.make(root, "num: $num, isAdd: $isAdd", Snackbar.LENGTH_SHORT).show()
+                }
+            }
                     
     right_open_button.getNum() //获取数量
 }
